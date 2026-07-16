@@ -87,6 +87,16 @@ class TrackdayViewModel(private val context: Context) : ViewModel() {
         }
     }
 
+    /** Suppress reminders for [minutes], then reschedule past the snooze window. */
+    fun snoozeReminders(minutes: Int) {
+        viewModelScope.launch {
+            val updated = repo.snooze(minutes)
+            reminderSettings = updated
+            com.example.trackday.reminder.ReminderScheduler.cancelAutoInherit(context)
+            com.example.trackday.reminder.ReminderScheduler.reschedule(context, updated)
+        }
+    }
+
     // ── Record CRUD ───────────────────────────────────────────────────────────
 
     fun getRecordsForDate(date: LocalDate): List<TimeRecord> =

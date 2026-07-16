@@ -51,7 +51,9 @@ data class ReminderSettings(
     val dndEnabled: Boolean = true,
     val sysNotifyEnabled: Boolean = true,
     val popupEnabled: Boolean = true,
-    val snoozeMinutes: Int = 60
+    val snoozeMinutes: Int = 60,
+    // epoch millis until which reminders are suppressed (0 = not snoozed)
+    val snoozeUntil: Long = 0L
 )
 
 // ── Seed data ─────────────────────────────────────────────────────────────────

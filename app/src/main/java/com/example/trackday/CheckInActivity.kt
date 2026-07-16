@@ -95,7 +95,10 @@ class CheckInActivity : ComponentActivity() {
                     lifecycleScope.launch {
                         repo.clearPendingCheckIn()
                         ReminderNotifier.cancel(this@CheckInActivity)
-                        ReminderScheduler.snoozeFor(this@CheckInActivity, settings.snoozeMinutes)
+                        ReminderScheduler.cancelAutoInherit(this@CheckInActivity)
+                        // persist the snooze window, then reschedule past it
+                        val updated = repo.snooze(settings.snoozeMinutes)
+                        ReminderScheduler.reschedule(this@CheckInActivity, updated)
                         finish()
                     }
                 }

@@ -188,7 +188,7 @@ fun TrackdayApp(vm: TrackdayViewModel) {
             onSnoozed = { min ->
                 AppUiState.closeCheckIn()
                 // actually suppress reminders for the snooze window
-                com.example.trackday.reminder.ReminderScheduler.snoozeFor(appContext, min)
+                vm.snoozeReminders(min)
                 popupToast.show("已暂停 $min 分钟，期间不再提醒")
             }
         )

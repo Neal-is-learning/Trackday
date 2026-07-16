@@ -39,8 +39,10 @@ class AlarmReceiver : BroadcastReceiver() {
             try {
                 val repo = TrackdayRepository.get(appContext)
                 val settings = repo.loadReminderSettings()
-                if (settings.enabled &&
-                    ReminderScheduler.isWithinWindow(settings, System.currentTimeMillis())
+                val now = System.currentTimeMillis()
+                val snoozed = settings.snoozeUntil > now
+                if (settings.enabled && !snoozed &&
+                    ReminderScheduler.isWithinWindow(settings, now)
                 ) {
                     // record the slot as a pending check-in
                     val end = LocalTime.now().withSecond(0).withNano(0)

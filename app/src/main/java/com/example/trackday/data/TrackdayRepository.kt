@@ -134,6 +134,14 @@ class TrackdayRepository private constructor(private val appContext: Context) {
         appContext.dataStore.edit { it[remindersKey] = json.encodeToString(s) }
     }
 
+    /** Suppress reminders for [minutes] from now by persisting snoozeUntil. */
+    suspend fun snooze(minutes: Int): ReminderSettings {
+        val cur = loadReminderSettings()
+        val updated = cur.copy(snoozeUntil = System.currentTimeMillis() + minutes * 60_000L)
+        saveReminderSettings(updated)
+        return updated
+    }
+
     // ── Summaries ─────────────────────────────────────────────────────────────
 
     suspend fun loadSummaries(): Map<String, String> {
