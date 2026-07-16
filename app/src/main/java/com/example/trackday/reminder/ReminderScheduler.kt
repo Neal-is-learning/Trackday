@@ -54,6 +54,32 @@ object ReminderScheduler {
         }
     }
 
+    /**
+     * Snooze: suppress reminders for [minutes], then resume. Cancels the normal
+     * interval alarm and the pending auto-inherit, and arms a single alarm
+     * [minutes] from now that re-starts the regular schedule when it fires.
+     */
+    fun snoozeFor(context: Context, minutes: Int) {
+        cancel(context)
+        cancelAutoInherit(context)
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val triggerAt = System.currentTimeMillis() + minutes * 60_000L
+        val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            am.canScheduleExactAlarms()
+        } else true
+        if (canExact) {
+            val showIntent = PendingIntent.getActivity(
+                context, 9001,
+                Intent(context, com.example.trackday.MainActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val info = AlarmManager.AlarmClockInfo(triggerAt, showIntent)
+            am.setAlarmClock(info, alarmPendingIntent(context))
+        } else {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, alarmPendingIntent(context))
+        }
+    }
+
     /** Schedule the background auto-inherit timeout [AUTO_INHERIT_SECONDS] from now. */
     fun scheduleAutoInherit(context: Context) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager

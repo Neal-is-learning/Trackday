@@ -117,6 +117,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun TrackdayApp(vm: TrackdayViewModel) {
     val td = LocalTdColors.current
+    val appContext = androidx.compose.ui.platform.LocalContext.current
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val current = backStack?.destination?.route ?: Dest.TIMELINE.route
@@ -186,7 +187,9 @@ fun TrackdayApp(vm: TrackdayViewModel) {
             },
             onSnoozed = { min ->
                 AppUiState.closeCheckIn()
-                popupToast.show("已暂停 $min 分钟")
+                // actually suppress reminders for the snooze window
+                com.example.trackday.reminder.ReminderScheduler.snoozeFor(appContext, min)
+                popupToast.show("已暂停 $min 分钟，期间不再提醒")
             }
         )
         TrackToast(popupToast)

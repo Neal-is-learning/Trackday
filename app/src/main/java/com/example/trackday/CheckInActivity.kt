@@ -81,10 +81,21 @@ class CheckInActivity : ComponentActivity() {
                     }
                 }
 
+                // Skip: just drop this check-in; the normal schedule continues.
                 fun dismiss() {
                     lifecycleScope.launch {
                         repo.clearPendingCheckIn()
                         ReminderNotifier.cancel(this@CheckInActivity)
+                        finish()
+                    }
+                }
+
+                // Snooze: suppress reminders for snoozeMinutes, then resume.
+                fun snooze() {
+                    lifecycleScope.launch {
+                        repo.clearPendingCheckIn()
+                        ReminderNotifier.cancel(this@CheckInActivity)
+                        ReminderScheduler.snoozeFor(this@CheckInActivity, settings.snoozeMinutes)
                         finish()
                     }
                 }
@@ -97,7 +108,7 @@ class CheckInActivity : ComponentActivity() {
                         autoInheritTag = lastTag,
                         autoDismissSeconds = ReminderScheduler.AUTO_INHERIT_SECONDS,
                         onLog = { tag -> logAndFinish(tag) },
-                        onSnooze = { dismiss() },
+                        onSnooze = { snooze() },
                         onSkip = { dismiss() }
                     )
                 }

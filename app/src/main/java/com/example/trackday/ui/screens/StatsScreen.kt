@@ -70,19 +70,14 @@ fun StatsScreen(vm: TrackdayViewModel) {
 
     var editOpen by remember { mutableStateOf(false) }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
     val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            // persist read access so the URI survives app restarts
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+            // copy into app storage (stable, no permission races) then add
+            vm.importAndAddPhoto(range, dateKey, uri) { ok ->
+                toast.show(if (ok) "已添加${rangeName(range)}配图" else "图片添加失败")
             }
-            vm.addPhoto(range, dateKey, uri.toString())
-            toast.show("已添加${rangeName(range)}配图")
         }
     }
 

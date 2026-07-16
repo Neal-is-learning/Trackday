@@ -160,6 +160,24 @@ class TrackdayRepository private constructor(private val appContext: Context) {
         appContext.dataStore.edit { it[photosKey] = json.encodeToString(map) }
     }
 
+    /**
+     * Copy a picked image (a temporary content:// URI from the photo picker)
+     * into app-private storage and return a stable file:// URI. This avoids the
+     * flaky persistable-permission dance on picker URIs (which caused the
+     * "must add twice before it shows" bug) — the copied file is always
+     * readable afterwards.
+     */
+    suspend fun importPhoto(sourceUri: android.net.Uri): String? {
+        return runCatching {
+            val dir = java.io.File(appContext.filesDir, "summary_photos").apply { mkdirs() }
+            val dest = java.io.File(dir, "img_${System.currentTimeMillis()}_${UUID.randomUUID()}.jpg")
+            appContext.contentResolver.openInputStream(sourceUri)?.use { input ->
+                dest.outputStream().use { output -> input.copyTo(output) }
+            } ?: return null
+            android.net.Uri.fromFile(dest).toString()
+        }.getOrNull()
+    }
+
     private fun String.toCatKey(): String = when (this) {
         "学习" -> "learn"
         "休息" -> "rest"

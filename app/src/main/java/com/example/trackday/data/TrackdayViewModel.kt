@@ -237,6 +237,24 @@ class TrackdayViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch { repo.savePhotos(snapshot) }
     }
 
+    /**
+     * Import a picked image into app storage, then add it. onDone is invoked on
+     * the main thread with success/failure so the UI can toast appropriately.
+     */
+    fun importAndAddPhoto(range: String, dateKey: String, sourceUri: android.net.Uri, onDone: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val stored = repo.importPhoto(sourceUri)
+            if (stored != null) {
+                val key = "$range|$dateKey"
+                photos = photos + (key to (photos[key] ?: emptyList()) + stored)
+                repo.savePhotos(photos)
+                onDone(true)
+            } else {
+                onDone(false)
+            }
+        }
+    }
+
     fun removePhoto(range: String, dateKey: String, uri: String) {
         val key = "$range|$dateKey"
         val updated = (photos[key] ?: emptyList()).filter { it != uri }
