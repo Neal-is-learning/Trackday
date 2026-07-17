@@ -124,6 +124,9 @@ object ReminderScheduler {
     /**
      * Next fire time = now + interval, but snapped into the active window.
      * If it lands after the window end, push to the window start of next day.
+     *
+     * Keeps second precision (does NOT zero the seconds): a 20-min interval
+     * fires exactly 20:00 from now, so the countdown is accurate to the second.
      */
     fun nextTriggerMillis(settings: ReminderSettings, nowMillis: Long): Long {
         val startMin = settings.startHour * 60 + settings.startMinute
@@ -131,7 +134,6 @@ object ReminderScheduler {
 
         val cal = Calendar.getInstance().apply { timeInMillis = nowMillis }
         cal.add(Calendar.MINUTE, settings.intervalMinutes)
-        cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
 
         val candidateMin = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)

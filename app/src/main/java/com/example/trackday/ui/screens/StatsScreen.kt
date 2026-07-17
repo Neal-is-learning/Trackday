@@ -519,19 +519,24 @@ private fun computeModel(vm: TrackdayViewModel, range: String): StatModel {
 
     if (range == "month") {
         eyebrow = "本月已记录"
-        trendTitle = "本月四周趋势"
-        val ym = YearMonth.from(today)
-        val weeks = IntArray(5)
-        for (dd in 1..ym.lengthOfMonth()) {
-            val wi = min(4, (dd - 1) / 7)
-            weeks[wi] += vm.dayTotal(ym.atDay(dd))
+        trendTitle = "最近四周趋势"
+        // rolling 7-day windows ending today: 3周前 / 2周前 / 上周 / 本周
+        // week index i (0..3) covers days [today-(3-i)*7-6 .. today-(3-i)*7]
+        val weekTotals = IntArray(4)
+        for (i in 0..3) {
+            val weeksAgo = 3 - i           // i=3 → this week (0 weeks ago)
+            val end = today.minusDays(weeksAgo * 7L)
+            var sum = 0
+            for (d in 0..6) {
+                sum += vm.dayTotal(end.minusDays(d.toLong()))
+            }
+            weekTotals[i] = sum
         }
-        weeks[3] += weeks[4]
-        val used = weeks.copyOfRange(0, 4).toList()
+        val used = weekTotals.toList()
         val maxW = (used.maxOrNull() ?: 1).coerceAtLeast(1)
         trend = used.map { Math.round(it / maxW.toFloat() * 100) } + listOf(0, 0, 0)
-        trendLabels = listOf("第1周", "第2周", "第3周", "第4周", "", "", "")
-        trendActive = min(3, (today.dayOfMonth - 1) / 7)
+        trendLabels = listOf("3周前", "2周前", "上周", "本周", "", "", "")
+        trendActive = 3   // this week is the last/highlighted column
         hint = "本月有记录 ${agg.activeDays} 天 · 共 ${agg.count} 条"
     } else {
         eyebrow = if (range == "day") "今日已记录" else "本周已记录"
