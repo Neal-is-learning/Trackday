@@ -29,58 +29,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.trackday.data.TagGroup
-import com.example.trackday.data.TrackdayViewModel
 import com.example.trackday.data.pad2
 import com.example.trackday.ui.theme.LocalTdColors
 import kotlinx.coroutines.delay
 import java.time.LocalTime
 
 /**
- * In-app check-in popup used by the timeline's demo bell button. Wraps the
- * shared [CheckInScreen] and writes through the ViewModel.
- */
-@Composable
-fun CheckInPopup(
-    visible: Boolean,
-    vm: TrackdayViewModel,
-    onDismiss: () -> Unit,
-    onLogged: (tag: String) -> Unit,
-    onSnoozed: (minutes: Int) -> Unit
-) {
-    val settings = vm.reminderSettings
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(220)),
-        exit = fadeOut(tween(200))
-    ) {
-        CheckInScreen(
-            tagGroups = vm.tagGroups,
-            intervalMinutes = settings.intervalMinutes,
-            snoozeMinutes = settings.snoozeMinutes,
-            onLog = { tag ->
-                val end = LocalTime.now().withSecond(0).withNano(0)
-                val start = end.minusMinutes(settings.intervalMinutes.toLong())
-                vm.addRecord(
-                    date = vm.today,
-                    tag = tag,
-                    cat = vm.catForTag(tag),
-                    start = "${pad2(start.hour)}:${pad2(start.minute)}",
-                    end = "${pad2(end.hour)}:${pad2(end.minute)}",
-                    note = ""
-                )
-                onLogged(tag)
-            },
-            onSnooze = { onSnoozed(settings.snoozeMinutes) },
-            onSkip = onDismiss,
-            animateIn = true
-        )
-    }
-}
-
-/**
- * Stateless full-screen check-in UI — the "全屏打卡弹窗" core flow. Shared by
- * the in-app popup and the standalone [com.example.trackday.CheckInActivity]
- * launched from the reminder's full-screen intent.
+ * Stateless full-screen check-in UI — the "全屏打卡弹窗" core flow, launched by
+ * the reminder's full-screen intent via [com.example.trackday.CheckInActivity].
  *
  * Callbacks: [onLog] gives the chosen tag (record writing is the caller's job),
  * [onSnooze] and [onSkip] just dismiss.

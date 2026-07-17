@@ -22,7 +22,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,8 +83,8 @@ fun TimelineScreen(vm: TrackdayViewModel) {
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // demo trigger for the full-screen check-in popup
-                        IconBtn(icon = Icons.Rounded.NotificationsActive, desc = "模拟打卡提醒") {
+                        // shows a countdown to the next reminder (no forced check-in)
+                        IconBtn(icon = Icons.Rounded.Timer, desc = "距离下次提醒") {
                             AppUiState.openCheckIn()
                         }
                         IconBtn(icon = Icons.Rounded.CalendarMonth, desc = "日历回看") {

@@ -97,6 +97,18 @@ class TrackdayViewModel(private val context: Context) : ViewModel() {
         }
     }
 
+    /**
+     * Epoch millis of the next reminder, or null if reminders are disabled.
+     * Used by the timeline's "距离下次提醒" countdown.
+     */
+    fun nextReminderAt(): Long? {
+        val s = reminderSettings
+        if (!s.enabled) return null
+        val now = System.currentTimeMillis()
+        val base = if (s.snoozeUntil > now) s.snoozeUntil else now
+        return com.example.trackday.reminder.ReminderScheduler.nextTriggerMillis(s, base)
+    }
+
     // ── Record CRUD ───────────────────────────────────────────────────────────
 
     fun getRecordsForDate(date: LocalDate): List<TimeRecord> =

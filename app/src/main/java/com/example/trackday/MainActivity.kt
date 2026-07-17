@@ -28,13 +28,11 @@ import com.example.trackday.data.TrackdayViewModel
 import com.example.trackday.ui.AppUiState
 import com.example.trackday.ui.BottomNav
 import com.example.trackday.ui.Dest
-import com.example.trackday.ui.screens.CheckInPopup
+import com.example.trackday.ui.screens.NextReminderCountdown
 import com.example.trackday.ui.screens.RemindersScreen
 import com.example.trackday.ui.screens.StatsScreen
 import com.example.trackday.ui.screens.TagsScreen
 import com.example.trackday.ui.screens.TimelineScreen
-import com.example.trackday.ui.common.TrackToast
-import com.example.trackday.ui.common.rememberToastState
 import com.example.trackday.ui.theme.LocalTdColors
 import com.example.trackday.ui.theme.TrackdayTheme
 
@@ -55,6 +53,7 @@ class MainActivity : ComponentActivity() {
         maybeRequestNotificationPermission()
         maybeRequestExactAlarmPermission()
         maybeRequestOverlayPermission()
+        maybeRequestIgnoreBatteryOptimization()
 
         setContent {
             TrackdayTheme {
@@ -109,6 +108,26 @@ class MainActivity : ComponentActivity() {
                         Uri.parse("package:$packageName")
                     )
                 )
+            }
+        }
+    }
+
+    // Battery-optimization exemption — the single most important switch for
+    // long-interval alarms: without it, Doze defers the alarm and you get no
+    // reminder for 20+ minutes (while short 1-min ones still slip through
+    // before the device dozes).
+    private fun maybeRequestIgnoreBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(android.os.PowerManager::class.java)
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                runCatching {
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:$packageName")
+                        )
+                    )
+                }
             }
         }
     }
@@ -174,24 +193,14 @@ fun TrackdayApp(vm: TrackdayViewModel) {
             }
         }
 
-        // Full-screen check-in popup — hosted at the app root so it covers the
-        // bottom nav like a real alarm. Triggered from the timeline bell.
-        val popupToast = rememberToastState()
-        CheckInPopup(
+        // Timeline bell → show a countdown to the next reminder (informational,
+        // does NOT force a check-in). The real check-in only comes from the
+        // background alarm via CheckInActivity.
+        NextReminderCountdown(
             visible = AppUiState.checkInVisible,
-            vm = vm,
-            onDismiss = { AppUiState.closeCheckIn() },
-            onLogged = { tag ->
-                AppUiState.closeCheckIn()
-                popupToast.show("已记录「$tag」")
-            },
-            onSnoozed = { min ->
-                AppUiState.closeCheckIn()
-                // actually suppress reminders for the snooze window
-                vm.snoozeReminders(min)
-                popupToast.show("已暂停 $min 分钟，期间不再提醒")
-            }
+            enabled = vm.reminderSettings.enabled,
+            nextAtProvider = { vm.nextReminderAt() },
+            onDismiss = { AppUiState.closeCheckIn() }
         )
-        TrackToast(popupToast)
     }
 }

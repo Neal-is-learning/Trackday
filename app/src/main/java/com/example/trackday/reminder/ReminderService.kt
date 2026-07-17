@@ -63,7 +63,7 @@ class ReminderService : Service() {
         return NotificationCompat.Builder(this, ONGOING_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Trackday 正在记录时间")
-            .setContentText("到点会提醒你现在在做什么")
+            .setContentText("到点会问你现在在做什么")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setContentIntent(openApp)

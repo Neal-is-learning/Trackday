@@ -47,7 +47,7 @@ object ReminderScheduler {
             // Doze, so this fires precisely even with the screen off.
             val showIntent = PendingIntent.getActivity(
                 context, 9001,
-                Intent(context, com.example.trackday.MainActivity::class.java),
+                Intent(context, com.example.trackday.CheckInActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             val info = AlarmManager.AlarmClockInfo(triggerAt, showIntent)
