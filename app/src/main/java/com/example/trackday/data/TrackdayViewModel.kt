@@ -71,17 +71,26 @@ class TrackdayViewModel(private val context: Context) : ViewModel() {
     }
 
     fun saveReminderSettings(s: ReminderSettings) {
+        val prev = reminderSettings
         reminderSettings = s
         viewModelScope.launch {
             repo.saveReminderSettings(s)
-            // (re)arm or cancel the background reminder to match the new settings
             com.example.trackday.reminder.ReminderNotifier.ensureChannel(context)
             if (s.enabled) {
-                // the foreground service keeps the process alive + arms the alarm
                 com.example.trackday.reminder.ReminderService.start(context)
+                // if the interval or the active window changed, restart the
+                // countdown from now so the new interval takes effect immediately
+                val timingChanged = prev.intervalMinutes != s.intervalMinutes ||
+                    prev.startHour != s.startHour || prev.startMinute != s.startMinute ||
+                    prev.endHour != s.endHour || prev.endMinute != s.endMinute ||
+                    !prev.enabled
+                if (timingChanged) {
+                    com.example.trackday.reminder.ReminderScheduler.restart(context, s)
+                }
             } else {
                 com.example.trackday.reminder.ReminderService.stop(context)
                 com.example.trackday.reminder.ReminderScheduler.cancel(context)
+                com.example.trackday.reminder.ReminderPrefs.clearNextTrigger(context)
                 com.example.trackday.reminder.ReminderNotifier.cancel(context)
             }
         }
@@ -93,20 +102,26 @@ class TrackdayViewModel(private val context: Context) : ViewModel() {
             val updated = repo.snooze(minutes)
             reminderSettings = updated
             com.example.trackday.reminder.ReminderScheduler.cancelAutoInherit(context)
-            com.example.trackday.reminder.ReminderScheduler.reschedule(context, updated)
+            com.example.trackday.reminder.ReminderScheduler.restart(context, updated)
         }
+    }
+
+    /** Manual "restart countdown" button on the timeline countdown screen. */
+    fun restartCountdown() {
+        val s = reminderSettings
+        if (!s.enabled) return
+        com.example.trackday.reminder.ReminderScheduler.restart(context, s)
     }
 
     /**
      * Epoch millis of the next reminder, or null if reminders are disabled.
-     * Used by the timeline's "距离下次提醒" countdown.
+     * Reads the FIXED scheduled time (not a recomputed moving target), so the
+     * countdown ticks down smoothly instead of resetting every minute.
      */
     fun nextReminderAt(): Long? {
-        val s = reminderSettings
-        if (!s.enabled) return null
-        val now = System.currentTimeMillis()
-        val base = if (s.snoozeUntil > now) s.snoozeUntil else now
-        return com.example.trackday.reminder.ReminderScheduler.nextTriggerMillis(s, base)
+        if (!reminderSettings.enabled) return null
+        val stored = com.example.trackday.reminder.ReminderPrefs.getNextTrigger(context)
+        return if (stored > 0) stored else null
     }
 
     // ── Record CRUD ───────────────────────────────────────────────────────────

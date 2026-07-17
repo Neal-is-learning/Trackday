@@ -310,10 +310,10 @@ private fun BoxScope.ReminderTimeInputSheet(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Bottom
         ) {
-            StepperField("时", hour, { hour = (it + 24) % 24 }, Modifier.weight(1f))
+            StepperField("时", hour, { hour = it }, Modifier.weight(1f))
             Text(":", fontSize = 28.sp, fontWeight = FontWeight.SemiBold, color = td.fg,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp))
-            StepperField("分", min, { min = (it + 60) % 60 }, Modifier.weight(1f))
+            StepperField("分", min, { min = it }, Modifier.weight(1f))
         }
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -326,23 +326,44 @@ private fun BoxScope.ReminderTimeInputSheet(
 @Composable
 private fun StepperField(label: String, value: Int, onChange: (Int) -> Unit, modifier: Modifier) {
     val td = LocalTdColors.current
+    val max = if (label == "时") 23 else 59
+    // local editable text mirrors the value; committed on change / focus loss
+    var text by remember(value) { mutableStateOf(pad2(value)) }
+
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.06.sp,
             color = td.muted, modifier = Modifier.padding(bottom = 6.dp))
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            StepBtn("−") { onChange(value - 1) }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 56.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(td.bg)
-                    .border(1.5.dp, td.border, RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(pad2(value), fontSize = 26.sp, fontWeight = FontWeight.SemiBold, color = td.fg)
-            }
-            StepBtn("+") { onChange(value + 1) }
+            StepBtn("−") { onChange((value - 1 + (max + 1)) % (max + 1)) }
+            androidx.compose.material3.OutlinedTextField(
+                value = text,
+                onValueChange = { raw ->
+                    // keep only digits, max 2 chars, clamp to valid range
+                    val digits = raw.filter { it.isDigit() }.take(2)
+                    text = digits
+                    val n = digits.toIntOrNull()
+                    if (n != null && n in 0..max) onChange(n)
+                },
+                modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    color = td.fg
+                ),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                ),
+                shape = RoundedCornerShape(14.dp),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = td.accent,
+                    unfocusedBorderColor = td.border,
+                    focusedContainerColor = td.surface,
+                    unfocusedContainerColor = td.bg
+                )
+            )
+            StepBtn("+") { onChange((value + 1) % (max + 1)) }
         }
     }
 }

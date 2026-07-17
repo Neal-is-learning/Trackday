@@ -200,6 +200,7 @@ fun TrackdayApp(vm: TrackdayViewModel) {
             visible = AppUiState.checkInVisible,
             enabled = vm.reminderSettings.enabled,
             nextAtProvider = { vm.nextReminderAt() },
+            onRestart = { vm.restartCountdown() },
             onDismiss = { AppUiState.closeCheckIn() }
         )
     }

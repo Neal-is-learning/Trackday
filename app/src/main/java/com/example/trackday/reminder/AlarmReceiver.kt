@@ -63,8 +63,8 @@ class AlarmReceiver : BroadcastReceiver() {
                     // background 30s auto-inherit timeout, independent of the UI
                     ReminderScheduler.scheduleAutoInherit(appContext)
                 }
-                // chain next interval
-                ReminderScheduler.reschedule(appContext, settings)
+                // the alarm just elapsed → force a fresh "now + interval"
+                ReminderScheduler.restart(appContext, settings)
             } finally {
                 pending.finish()
             }

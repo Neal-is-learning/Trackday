@@ -39,6 +39,7 @@ fun NextReminderCountdown(
     visible: Boolean,
     enabled: Boolean,
     nextAtProvider: () -> Long?,
+    onRestart: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val td = LocalTdColors.current
@@ -111,8 +112,27 @@ fun NextReminderCountdown(
                             "到点会问你现在在做什么",
                             fontSize = 13.sp, color = td.muted
                         )
+                        Spacer(Modifier.height(20.dp))
+                        // restart the countdown from the full interval
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(td.accent)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    onRestart()
+                                    // reflect immediately in the countdown
+                                    remaining = computeRemaining(nextAtProvider())
+                                }
+                                .padding(horizontal = 24.dp, vertical = 12.dp)
+                        ) {
+                            Text("重新开始倒计时", fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold, color = Color.White)
+                        }
                     }
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(16.dp))
                     Text(
                         "点击任意处关闭",
                         fontSize = 12.sp, color = td.muted.copy(alpha = 0.7f)
@@ -125,7 +145,10 @@ fun NextReminderCountdown(
 
 private fun computeRemaining(nextAt: Long?): Long {
     if (nextAt == null) return 0
-    return ((nextAt - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
+    val millisLeft = nextAt - System.currentTimeMillis()
+    if (millisLeft <= 0) return 0
+    // round UP: a 20-min alarm shows "20:00" at the start, not "19:59"
+    return ((millisLeft + 999) / 1000)
 }
 
 /** seconds → "HH:MM:SS" or "MM:SS" */

@@ -29,15 +29,35 @@ object ReminderScheduler {
     /** Seconds a popup waits for the user before auto-inheriting the last tag. */
     const val AUTO_INHERIT_SECONDS = 30
 
-    fun reschedule(context: Context, settings: ReminderSettings) {
+    /**
+     * Arm the next interval alarm.
+     *
+     * Crucially this does NOT move an already-scheduled future alarm: if a valid
+     * trigger time is already stored and still in the future, it re-arms the
+     * SAME time. Otherwise (first run, alarm already elapsed, or [force] = true)
+     * it computes a fresh "now + interval". This is what stops the countdown
+     * from resetting — and stops the 20-min alarm from being pushed back every
+     * time the app is opened.
+     */
+    fun reschedule(context: Context, settings: ReminderSettings, force: Boolean = false) {
         cancel(context)
-        if (!settings.enabled) return
+        if (!settings.enabled) {
+            ReminderPrefs.clearNextTrigger(context)
+            return
+        }
         val now = System.currentTimeMillis()
-        // if we're still inside a snooze window, fire no earlier than its end
-        val base = if (settings.snoozeUntil > now) settings.snoozeUntil else now
-        val triggerAt = nextTriggerMillis(settings, base)
-        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val existing = ReminderPrefs.getNextTrigger(context)
 
+        val triggerAt = if (!force && existing > now && withinSnoozeOk(settings, existing, now)) {
+            // keep the previously fixed target so the countdown is stable
+            existing
+        } else {
+            val base = if (settings.snoozeUntil > now) settings.snoozeUntil else now
+            nextTriggerMillis(settings, base)
+        }
+        ReminderPrefs.setNextTrigger(context, triggerAt)
+
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             am.canScheduleExactAlarms()
         } else true
@@ -56,6 +76,14 @@ object ReminderScheduler {
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, alarmPendingIntent(context))
         }
     }
+
+    /** An existing target is only reusable if it doesn't fall inside a snooze. */
+    private fun withinSnoozeOk(settings: ReminderSettings, existing: Long, now: Long): Boolean {
+        return settings.snoozeUntil <= now || existing >= settings.snoozeUntil
+    }
+
+    /** Force a brand-new "now + interval" alarm (used after firing / restart / manual). */
+    fun restart(context: Context, settings: ReminderSettings) = reschedule(context, settings, force = true)
 
     /** Schedule the background auto-inherit timeout [AUTO_INHERIT_SECONDS] from now. */
     fun scheduleAutoInherit(context: Context) {
